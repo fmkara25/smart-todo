@@ -1,0 +1,17 @@
+﻿# Node
+node_modules/
+
+# Vite
+dist/
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vs/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
