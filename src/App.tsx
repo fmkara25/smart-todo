@@ -1,17 +1,197 @@
-﻿export default function App() {
+﻿import { useMemo, useState } from "react";
+import type { Priority, Task } from "./types/todo";
+
+const DEMO_TASKS: Task[] = [
+    {
+        id: "t1",
+        title: "Vite + Tailwind kurulumu tamamla",
+        completed: true,
+        priority: "Medium",
+        dueDate: null,
+        createdAt: Date.now() - 1000 * 60 * 60 * 24,
+    },
+    {
+        id: "t2",
+        title: "UI iskeletini bitir",
+        completed: false,
+        priority: "High",
+        dueDate: null,
+        createdAt: Date.now() - 1000 * 60 * 60,
+    },
+    {
+        id: "t3",
+        title: "LocalStorage kaydını ekle",
+        completed: false,
+        priority: "Low",
+        dueDate: null,
+        createdAt: Date.now() - 1000 * 60 * 10,
+    },
+];
+
+function uid() {
+    // basit id üretimi (ileride istersen nanoid kullanırız)
+    return crypto.randomUUID ? crypto.randomUUID() : `id_${Math.random().toString(16).slice(2)}`;
+}
+
+export default function App() {
+    const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
+
+    // Form state
+    const [title, setTitle] = useState("");
+    const [priority, setPriority] = useState<Priority>("Medium");
+    const [dueDate, setDueDate] = useState<string>(""); // input için string, kaydederken null'a çevireceğiz
+
+    const remainingCount = useMemo(
+        () => tasks.filter((t) => !t.completed).length,
+        [tasks]
+    );
+
+    function addTask(e: React.FormEvent) {
+        e.preventDefault();
+        const trimmed = title.trim();
+        if (!trimmed) return;
+
+        const newTask: Task = {
+            id: uid(),
+            title: trimmed,
+            completed: false,
+            priority,
+            dueDate: dueDate ? dueDate : null,
+            createdAt: Date.now(),
+        };
+
+        setTasks((prev) => [newTask, ...prev]);
+        setTitle("");
+        setPriority("Medium");
+        setDueDate("");
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900">
-            <div className="mx-auto max-w-xl p-4">
-                <h1 className="text-2xl font-bold">Smart To-Do</h1>
-                <p className="mt-2 text-sm text-gray-600">
-                    Kurulum tamam! Sonraki adım: UI iskeleti ve Task modeli.
-                </p>
+            <div className="mx-auto max-w-2xl p-4 sm:p-6">
+                {/* Header */}
+                <header className="flex items-center justify-between gap-3">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                            Smart To-Do
+                        </h1>
+                        <p className="mt-1 text-sm text-gray-600">
+                            Kalan görev: <span className="font-semibold">{remainingCount}</span>
+                        </p>
+                    </div>
+                    <span className="rounded-full border bg-white px-3 py-1 text-xs text-gray-600 shadow-sm">
+                        React + TS + Tailwind
+                    </span>
+                </header>
 
-                <div className="mt-6 rounded-xl border bg-white p-4 shadow-sm">
-                    <p className="text-sm">
-                        Tailwind çalışıyorsa bu kart kutu gibi görünecek ✅
-                    </p>
-                </div>
+                {/* Add form */}
+                <section className="mt-6 rounded-2xl border bg-white p-4 shadow-sm sm:p-5">
+                    <h2 className="text-sm font-semibold text-gray-800">Yeni görev ekle</h2>
+
+                    <form onSubmit={addTask} className="mt-3 space-y-3">
+                        <div>
+                            <label className="text-xs font-medium text-gray-700">
+                                Görev başlığı
+                            </label>
+                            <input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Örn: CV için 2 repo daha ekle"
+                                className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                                <label className="text-xs font-medium text-gray-700">
+                                    Öncelik
+                                </label>
+                                <select
+                                    value={priority}
+                                    onChange={(e) => setPriority(e.target.value as Priority)}
+                                    className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
+                                >
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-medium text-gray-700">
+                                    Son tarih
+                                </label>
+                                <input
+                                    type="date"
+                                    value={dueDate}
+                                    onChange={(e) => setDueDate(e.target.value)}
+                                    className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
+                                />
+                            </div>
+
+                            <div className="flex items-end">
+                                <button
+                                    type="submit"
+                                    disabled={!title.trim()}
+                                    className="w-full rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Ekle
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+                {/* List / Empty state */}
+                <section className="mt-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
+                        <span className="text-xs text-gray-500">
+                            Toplam: {tasks.length}
+                        </span>
+                    </div>
+
+                    {tasks.length === 0 ? (
+                        <div className="mt-3 rounded-2xl border bg-white p-6 text-center text-sm text-gray-600 shadow-sm">
+                            Henüz görev yok. Yukarıdan bir görev ekleyerek başlayabilirsin ✨
+                        </div>
+                    ) : (
+                        <ul className="mt-3 space-y-2">
+                            {tasks.map((t) => (
+                                <li
+                                    key={t.id}
+                                    className="rounded-2xl border bg-white p-4 shadow-sm"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold">{t.title}</p>
+                                            <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
+                                                <span className="rounded-full border px-2 py-0.5">
+                                                    Priority: {t.priority}
+                                                </span>
+                                                <span className="rounded-full border px-2 py-0.5">
+                                                    Due: {t.dueDate ?? "—"}
+                                                </span>
+                                                <span className="rounded-full border px-2 py-0.5">
+                                                    Status: {t.completed ? "Done" : "Active"}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <span
+                                            className={`rounded-full px-2 py-1 text-xs font-semibold ${t.completed
+                                                    ? "bg-gray-100 text-gray-600"
+                                                    : "bg-gray-900 text-white"
+                                                }`}
+                                        >
+                                            {t.completed ? "Completed" : "Active"}
+                                        </span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
             </div>
         </div>
     );
