@@ -1,5 +1,5 @@
 ﻿import { useMemo, useState } from "react";
-import type { Priority, Task } from "./types/todo";
+import type { Filter, Priority, Task } from "./types/todo";
 import TaskItem from "./components/TaskItem";
 
 const DEMO_TASKS: Task[] = [
@@ -37,6 +37,9 @@ function uid() {
 export default function App() {
     const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
 
+    const [filter, setFilter] = useState<Filter>("all");
+    const [query, setQuery] = useState("");
+
     // Form state
     const [title, setTitle] = useState("");
     const [priority, setPriority] = useState<Priority>("Medium");
@@ -46,6 +49,23 @@ export default function App() {
         () => tasks.filter((t) => !t.completed).length,
         [tasks]
     );
+    const visibleTasks = useMemo(() => {
+        const q = query.trim().toLowerCase();
+
+        return tasks.filter((t) => {
+            const matchesFilter =
+                filter === "all"
+                    ? true
+                    : filter === "active"
+                        ? !t.completed
+                        : t.completed;
+
+            const matchesQuery = q ? t.title.toLowerCase().includes(q) : true;
+
+            return matchesFilter && matchesQuery;
+        });
+    }, [tasks, filter, query]);
+
     function toggleTask(id: string) {
         setTasks((prev) =>
             prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
@@ -159,20 +179,61 @@ export default function App() {
 
                 {/* List / Empty state */}
                 <section className="mt-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
-                        <span className="text-xs text-gray-500">
-                            Toplam: {tasks.length}
-                        </span>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Görünen: {visibleTasks.length} • Toplam: {tasks.length}
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            {/* Search */}
+                            <input
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Ara (ör: UI, storage...)"
+                                className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-64"
+                            />
+
+                            {/* Filter buttons */}
+                            <div className="flex overflow-hidden rounded-xl border bg-white">
+                                <button
+                                    type="button"
+                                    onClick={() => setFilter("all")}
+                                    className={`px-3 py-2 text-xs font-semibold ${filter === "all" ? "bg-gray-900 text-white" : "text-gray-700"
+                                        }`}
+                                >
+                                    Hepsi
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilter("active")}
+                                    className={`px-3 py-2 text-xs font-semibold ${filter === "active" ? "bg-gray-900 text-white" : "text-gray-700"
+                                        }`}
+                                >
+                                    Aktif
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilter("completed")}
+                                    className={`px-3 py-2 text-xs font-semibold ${filter === "completed" ? "bg-gray-900 text-white" : "text-gray-700"
+                                        }`}
+                                >
+                                    Tamamlanan
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    {tasks.length === 0 ? (
+                    {visibleTasks.length === 0 ? ( 
+
                         <div className="mt-3 rounded-2xl border bg-white p-6 text-center text-sm text-gray-600 shadow-sm">
                             Henüz görev yok. Yukarıdan bir görev ekleyerek başlayabilirsin ✨
                         </div>
                     ) : (
                                 <ul className="mt-3 space-y-2">
-                                    {tasks.map((t) => (
+                                {visibleTasks.map((t) => (
                                         <TaskItem
                                             key={t.id}
                                             task={t}
