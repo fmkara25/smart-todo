@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import type { Priority, Task } from "./types/todo";
+import TaskItem from "./components/TaskItem";
 
 const DEMO_TASKS: Task[] = [
     {
@@ -45,7 +46,21 @@ export default function App() {
         () => tasks.filter((t) => !t.completed).length,
         [tasks]
     );
+    function toggleTask(id: string) {
+        setTasks((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+        );
+    }
 
+    function deleteTask(id: string) {
+        setTasks((prev) => prev.filter((t) => t.id !== id));
+    }
+
+    function updateTaskTitle(id: string, newTitle: string) {
+        setTasks((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, title: newTitle } : t))
+        );
+    }
     function addTask(e: React.FormEvent) {
         e.preventDefault();
         const trimmed = title.trim();
@@ -156,41 +171,18 @@ export default function App() {
                             Henüz görev yok. Yukarıdan bir görev ekleyerek başlayabilirsin ✨
                         </div>
                     ) : (
-                        <ul className="mt-3 space-y-2">
-                            {tasks.map((t) => (
-                                <li
-                                    key={t.id}
-                                    className="rounded-2xl border bg-white p-4 shadow-sm"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="text-sm font-semibold">{t.title}</p>
-                                            <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-                                                <span className="rounded-full border px-2 py-0.5">
-                                                    Priority: {t.priority}
-                                                </span>
-                                                <span className="rounded-full border px-2 py-0.5">
-                                                    Due: {t.dueDate ?? "—"}
-                                                </span>
-                                                <span className="rounded-full border px-2 py-0.5">
-                                                    Status: {t.completed ? "Done" : "Active"}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <span
-                                            className={`rounded-full px-2 py-1 text-xs font-semibold ${t.completed
-                                                    ? "bg-gray-100 text-gray-600"
-                                                    : "bg-gray-900 text-white"
-                                                }`}
-                                        >
-                                            {t.completed ? "Completed" : "Active"}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                <ul className="mt-3 space-y-2">
+                                    {tasks.map((t) => (
+                                        <TaskItem
+                                            key={t.id}
+                                            task={t}
+                                            onToggle={toggleTask}
+                                            onDelete={deleteTask}
+                                            onUpdateTitle={updateTaskTitle}
+                                        />
+                                    ))}
+                                </ul>
+                            )}
                 </section>
             </div>
         </div>
