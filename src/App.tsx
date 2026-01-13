@@ -39,6 +39,7 @@ export default function App() {
 
     const [filter, setFilter] = useState<Filter>("all");
     const [query, setQuery] = useState("");
+    const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
 
     // Form state
     const [title, setTitle] = useState("");
@@ -49,10 +50,10 @@ export default function App() {
         () => tasks.filter((t) => !t.completed).length,
         [tasks]
     );
-    const visibleTasks = useMemo(() => {
+    const sortedVisibleTasks = useMemo(() => {
         const q = query.trim().toLowerCase();
 
-        return tasks.filter((t) => {
+        const filtered = tasks.filter((t) => {
             const matchesFilter =
                 filter === "all"
                     ? true
@@ -64,7 +65,30 @@ export default function App() {
 
             return matchesFilter && matchesQuery;
         });
-    }, [tasks, filter, query]);
+
+        const sorted = [...filtered].sort((a, b) => {
+            if (sortBy === "dueDate") {
+                const aTime = a.dueDate
+                    ? new Date(a.dueDate).getTime()
+                    : Number.POSITIVE_INFINITY;
+                const bTime = b.dueDate
+                    ? new Date(b.dueDate).getTime()
+                    : Number.POSITIVE_INFINITY;
+
+                return aTime - bTime;
+            }
+
+            const rank: Record<string, number> = {
+                High: 3,
+                Medium: 2,
+                Low: 1,
+            };
+
+            return rank[b.priority] - rank[a.priority];
+        });
+
+        return sorted;
+    }, [tasks, filter, query, sortBy]);
 
     function toggleTask(id: string) {
         setTasks((prev) =>
@@ -183,7 +207,7 @@ export default function App() {
                         <div>
                             <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
                             <p className="mt-1 text-xs text-gray-500">
-                                Görünen: {visibleTasks.length} • Toplam: {tasks.length}
+                                Görünen: {sortedVisibleTasks.length} • Toplam: {tasks.length}
                             </p>
                         </div>
 
@@ -195,6 +219,15 @@ export default function App() {
                                 placeholder="Ara (ör: UI, storage...)"
                                 className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-64"
                             />
+
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as "dueDate" | "priority")}
+                                className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-56"
+                            >
+                                <option value="dueDate">Sırala: Son tarihe göre</option>
+                                <option value="priority">Sırala: Önceliğe göre</option>
+                            </select>
 
                             {/* Filter buttons */}
                             <div className="flex overflow-hidden rounded-xl border bg-white">
@@ -226,14 +259,14 @@ export default function App() {
                         </div>
                     </div>
 
-                    {visibleTasks.length === 0 ? ( 
+                    {sortedVisibleTasks.length === 0 ? ( 
 
                         <div className="mt-3 rounded-2xl border bg-white p-6 text-center text-sm text-gray-600 shadow-sm">
                             Henüz görev yok. Yukarıdan bir görev ekleyerek başlayabilirsin ✨
                         </div>
                     ) : (
                                 <ul className="mt-3 space-y-2">
-                                {visibleTasks.map((t) => (
+                                {sortedVisibleTasks.map((t) => (
                                         <TaskItem
                                             key={t.id}
                                             task={t}
