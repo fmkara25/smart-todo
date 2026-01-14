@@ -235,87 +235,96 @@ export default function App() {
                         </div>
                     </form>
                 </section>
+                {/* Filter Bar (centered between sections) */}
+                <div className="mt-5 flex justify-center">
+                    <div className="inline-flex overflow-hidden rounded-2xl border bg-white shadow-sm">
+                        <button
+                            type="button"
+                            onClick={() => setFilter("all")}
+                            className={`px-5 py-2 text-sm font-semibold ${filter === "all"
+                                    ? "bg-gray-900 text-white"
+                                    : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                        >
+                            Hepsi
+                        </button>
 
+                        <button
+                            type="button"
+                            onClick={() => setFilter("active")}
+                            className={`px-5 py-2 text-sm font-semibold ${filter === "active"
+                                    ? "bg-gray-900 text-white"
+                                    : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                        >
+                            Aktif
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setFilter("completed")}
+                            className={`px-5 py-2 text-sm font-semibold ${filter === "completed"
+                                    ? "bg-gray-900 text-white"
+                                    : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                        >
+                            Tamamlanan
+                        </button>
+                    </div>
+                </div>
                 {/* List / Empty state */}
                 <section className="mt-6">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
+                    <div className="mt-2 rounded-2xl border bg-white p-4 shadow-sm">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            {/* Left: title + actions */}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
 
-                                <button
-                                    type="button"
-                                    onClick={clearCompleted}
-                                    disabled={!tasks.some((t) => t.completed)}
-                                    className="rounded-xl border bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
-                                    title="Tamamlanan görevleri sil"
-                                >
-                                    Clear completed
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={clearCompleted}
+                                        disabled={!tasks.some((t) => t.completed)}
+                                        className="rounded-full border bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        Clear completed
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    onClick={resetDemo}
-                                    className="rounded-xl border bg-white px-3 py-1.5 text-xs font-semibold text-gray-800"
-                                    title="Demo görevleri geri yükle"
-                                >
-                                    Reset demo
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={resetDemo}
+                                        className="rounded-full border bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Reset demo
+                                    </button>
+                                </div>
+
+                                <p className="text-xs text-gray-500">
+                                    Görünen: {sortedVisibleTasks.length} • Toplam: {tasks.length}
+                                </p>
                             </div>
 
-                            <p className="text-xs text-gray-500">
-                                Görünen: {sortedVisibleTasks.length} • Toplam: {tasks.length}
-                            </p>
-                        </div>
+                            {/* Right: controls */}
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <input
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="Ara (ör: UI, storage...)"
+                                    className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-64"
+                                />
 
-
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <input
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Ara (ör: UI, storage...)"
-                                className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-64"
-                            />
-
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as "dueDate" | "priority")}
-                                className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-56"
-                            >
-                                <option value="dueDate">Sırala: Son tarihe göre</option>
-                                <option value="priority">Sırala: Önceliğe göre</option>
-                            </select>
-
-                            <div className="flex overflow-hidden rounded-xl border bg-white">
-                                <button
-                                    type="button"
-                                    onClick={() => setFilter("all")}
-                                    className={`px-3 py-2 text-xs font-semibold ${filter === "all" ? "bg-gray-900 text-white" : "text-gray-700"
-                                        }`}
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as "dueDate" | "priority")}
+                                    className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-56"
                                 >
-                                    Hepsi
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFilter("active")}
-                                    className={`px-3 py-2 text-xs font-semibold ${filter === "active" ? "bg-gray-900 text-white" : "text-gray-700"
-                                        }`}
-                                >
-                                    Aktif
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFilter("completed")}
-                                    className={`px-3 py-2 text-xs font-semibold ${filter === "completed"
-                                            ? "bg-gray-900 text-white"
-                                            : "text-gray-700"
-                                        }`}
-                                >
-                                    Tamamlanan
-                                </button>
+                                    <option value="dueDate">Sırala: Son tarihe göre</option>
+                                    <option value="priority">Sırala: Önceliğe göre</option>
+                                </select>
                             </div>
                         </div>
                     </div>
+
 
                     {sortedVisibleTasks.length === 0 ? (
                         <div className="mt-3 rounded-2xl border bg-white p-6 text-center text-sm text-gray-600 shadow-sm">

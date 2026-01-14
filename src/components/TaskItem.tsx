@@ -77,11 +77,11 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdateTitle }: Pr
                 </div>
 
                 {!isEditing && (
-                    <div className="flex shrink-0 flex-col gap-2">
+                    <div className="flex shrink-0 flex-row gap-2 sm:flex-col">
                         <button
                             type="button"
                             onClick={() => onToggle(task.id)}
-                            className="rounded-xl bg-gray-900 px-3 py-2 text-xs font-semibold text-white"
+                            className="rounded-xl bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
                         >
                             {task.completed ? "Aktif yap" : "Tamamla"}
                         </button>
@@ -89,7 +89,7 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdateTitle }: Pr
                         <button
                             type="button"
                             onClick={startEdit}
-                            className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-gray-800"
+                            className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50"
                         >
                             Düzenle
                         </button>
@@ -97,7 +97,7 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdateTitle }: Pr
                         <button
                             type="button"
                             onClick={() => onDelete(task.id)}
-                            className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-red-600"
+                            className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                         >
                             Sil
                         </button>
