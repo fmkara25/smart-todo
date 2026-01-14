@@ -5,7 +5,7 @@ import TaskItem from "./components/TaskItem";
 const DEMO_TASKS: Task[] = [
     {
         id: "t1",
-        title: "Vite + Tailwind kurulumu tamamla",
+        title: "Gorev 1",
         completed: true,
         priority: "Medium",
         dueDate: null,
@@ -13,7 +13,7 @@ const DEMO_TASKS: Task[] = [
     },
     {
         id: "t2",
-        title: "UI iskeletini bitir",
+        title: "Gorev 2",
         completed: false,
         priority: "High",
         dueDate: null,
@@ -21,7 +21,7 @@ const DEMO_TASKS: Task[] = [
     },
     {
         id: "t3",
-        title: "LocalStorage kaydını ekle",
+        title: "Gorev 3",
         completed: false,
         priority: "Low",
         dueDate: null,
@@ -194,7 +194,7 @@ export default function App() {
                             <input
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Örn: CV için 2 repo daha ekle"
+                                placeholder="Buraya gorev yeni bir gorev yaz"
                                 className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
                             />
                         </div>
