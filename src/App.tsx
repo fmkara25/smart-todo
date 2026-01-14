@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { Filter, Priority, Task } from "./types/todo";
 import TaskItem from "./components/TaskItem";
 
@@ -31,12 +31,37 @@ const DEMO_TASKS: Task[] = [
 
 function uid() {
     // basit id üretimi (ileride istersen nanoid kullanırız)
-    return crypto.randomUUID ? crypto.randomUUID() : `id_${Math.random().toString(16).slice(2)}`;
+    return crypto.randomUUID
+        ? crypto.randomUUID()
+        : `id_${Math.random().toString(16).slice(2)}`;
+}
+
+const STORAGE_KEY = "smart-todo.tasks.v1";
+
+function loadTasks(): Task[] {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return DEMO_TASKS;
+
+        const parsed = JSON.parse(raw) as Task[];
+        if (!Array.isArray(parsed)) return DEMO_TASKS;
+
+        // Minimum alan kontrolü (çok basit)
+        const looksValid = parsed.every(
+            (t) =>
+                typeof t.id === "string" &&
+                typeof t.title === "string" &&
+                typeof t.completed === "boolean"
+        );
+
+        return looksValid ? parsed : DEMO_TASKS;
+    } catch {
+        return DEMO_TASKS;
+    }
 }
 
 export default function App() {
-    const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
-
+    const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
     const [filter, setFilter] = useState<Filter>("all");
     const [query, setQuery] = useState("");
     const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
@@ -50,16 +75,13 @@ export default function App() {
         () => tasks.filter((t) => !t.completed).length,
         [tasks]
     );
+
     const sortedVisibleTasks = useMemo(() => {
         const q = query.trim().toLowerCase();
 
         const filtered = tasks.filter((t) => {
             const matchesFilter =
-                filter === "all"
-                    ? true
-                    : filter === "active"
-                        ? !t.completed
-                        : t.completed;
+                filter === "all" ? true : filter === "active" ? !t.completed : t.completed;
 
             const matchesQuery = q ? t.title.toLowerCase().includes(q) : true;
 
@@ -90,6 +112,11 @@ export default function App() {
         return sorted;
     }, [tasks, filter, query, sortBy]);
 
+    // ✅ LocalStorage'a kaydet (tasks değiştikçe)
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }, [tasks]);
+
     function toggleTask(id: string) {
         setTasks((prev) =>
             prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
@@ -105,6 +132,7 @@ export default function App() {
             prev.map((t) => (t.id === id ? { ...t, title: newTitle } : t))
         );
     }
+
     function addTask(e: React.FormEvent) {
         e.preventDefault();
         const trimmed = title.trim();
@@ -162,9 +190,7 @@ export default function App() {
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <div>
-                                <label className="text-xs font-medium text-gray-700">
-                                    Öncelik
-                                </label>
+                                <label className="text-xs font-medium text-gray-700">Öncelik</label>
                                 <select
                                     value={priority}
                                     onChange={(e) => setPriority(e.target.value as Priority)}
@@ -177,9 +203,7 @@ export default function App() {
                             </div>
 
                             <div>
-                                <label className="text-xs font-medium text-gray-700">
-                                    Son tarih
-                                </label>
+                                <label className="text-xs font-medium text-gray-700">Son tarih</label>
                                 <input
                                     type="date"
                                     value={dueDate}
@@ -212,7 +236,6 @@ export default function App() {
                         </div>
 
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            {/* Search */}
                             <input
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
@@ -229,7 +252,6 @@ export default function App() {
                                 <option value="priority">Sırala: Önceliğe göre</option>
                             </select>
 
-                            {/* Filter buttons */}
                             <div className="flex overflow-hidden rounded-xl border bg-white">
                                 <button
                                     type="button"
@@ -250,7 +272,9 @@ export default function App() {
                                 <button
                                     type="button"
                                     onClick={() => setFilter("completed")}
-                                    className={`px-3 py-2 text-xs font-semibold ${filter === "completed" ? "bg-gray-900 text-white" : "text-gray-700"
+                                    className={`px-3 py-2 text-xs font-semibold ${filter === "completed"
+                                            ? "bg-gray-900 text-white"
+                                            : "text-gray-700"
                                         }`}
                                 >
                                     Tamamlanan
@@ -259,24 +283,23 @@ export default function App() {
                         </div>
                     </div>
 
-                    {sortedVisibleTasks.length === 0 ? ( 
-
+                    {sortedVisibleTasks.length === 0 ? (
                         <div className="mt-3 rounded-2xl border bg-white p-6 text-center text-sm text-gray-600 shadow-sm">
                             Henüz görev yok. Yukarıdan bir görev ekleyerek başlayabilirsin ✨
                         </div>
                     ) : (
-                                <ul className="mt-3 space-y-2">
-                                {sortedVisibleTasks.map((t) => (
-                                        <TaskItem
-                                            key={t.id}
-                                            task={t}
-                                            onToggle={toggleTask}
-                                            onDelete={deleteTask}
-                                            onUpdateTitle={updateTaskTitle}
-                                        />
-                                    ))}
-                                </ul>
-                            )}
+                        <ul className="mt-3 space-y-2">
+                            {sortedVisibleTasks.map((t) => (
+                                <TaskItem
+                                    key={t.id}
+                                    task={t}
+                                    onToggle={toggleTask}
+                                    onDelete={deleteTask}
+                                    onUpdateTitle={updateTaskTitle}
+                                />
+                            ))}
+                        </ul>
+                    )}
                 </section>
             </div>
         </div>
