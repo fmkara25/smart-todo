@@ -132,7 +132,18 @@ export default function App() {
             prev.map((t) => (t.id === id ? { ...t, title: newTitle } : t))
         );
     }
+    function clearCompleted() {
+        setTasks((prev) => prev.filter((t) => !t.completed));
+    }
 
+    function resetDemo() {
+        // storage'ı temizle ve demoya dön
+        localStorage.removeItem(STORAGE_KEY);
+        setTasks(DEMO_TASKS);
+        setFilter("all");
+        setQuery("");
+        setSortBy("dueDate");
+    }
     function addTask(e: React.FormEvent) {
         e.preventDefault();
         const trimmed = title.trim();
@@ -228,12 +239,35 @@ export default function App() {
                 {/* List / Empty state */}
                 <section className="mt-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
-                            <p className="mt-1 text-xs text-gray-500">
+                        <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
+
+                                <button
+                                    type="button"
+                                    onClick={clearCompleted}
+                                    disabled={!tasks.some((t) => t.completed)}
+                                    className="rounded-xl border bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+                                    title="Tamamlanan görevleri sil"
+                                >
+                                    Clear completed
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={resetDemo}
+                                    className="rounded-xl border bg-white px-3 py-1.5 text-xs font-semibold text-gray-800"
+                                    title="Demo görevleri geri yükle"
+                                >
+                                    Reset demo
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-gray-500">
                                 Görünen: {sortedVisibleTasks.length} • Toplam: {tasks.length}
                             </p>
                         </div>
+
 
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input
