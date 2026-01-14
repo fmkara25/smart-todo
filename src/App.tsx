@@ -309,7 +309,7 @@ export default function App() {
                                 <input
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="Ara (ör: UI, storage...)"
+                                    placeholder="Ara"
                                     className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-64"
                                 />
 
