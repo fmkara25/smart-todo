@@ -1,4 +1,4 @@
-﻿# Smart To-Do ✅
+﻿# Smart To-Do 
 
 A clean, responsive **smart to-do list** built with **React + TypeScript + Tailwind + Vite**.
 Includes CRUD, filtering, search, sorting, and **localStorage persistence**.
