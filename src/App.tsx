@@ -1,11 +1,12 @@
 ﻿import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import type { Filter, Priority, Task } from "./types/todo";
 import TaskItem from "./components/TaskItem";
 
 const DEMO_TASKS: Task[] = [
     {
         id: "t1",
-        title: "Gorev 1",
+        title: "Task 1",
         completed: true,
         priority: "Medium",
         dueDate: null,
@@ -13,7 +14,7 @@ const DEMO_TASKS: Task[] = [
     },
     {
         id: "t2",
-        title: "Gorev 2",
+        title: "Task 2",
         completed: false,
         priority: "High",
         dueDate: null,
@@ -21,7 +22,7 @@ const DEMO_TASKS: Task[] = [
     },
     {
         id: "t3",
-        title: "Gorev 3",
+        title: "Task 3",
         completed: false,
         priority: "Low",
         dueDate: null,
@@ -29,14 +30,13 @@ const DEMO_TASKS: Task[] = [
     },
 ];
 
+const STORAGE_KEY = "smart-todo.tasks.v1";
+
 function uid() {
-    // basit id üretimi (ileride istersen nanoid kullanırız)
     return crypto.randomUUID
         ? crypto.randomUUID()
         : `id_${Math.random().toString(16).slice(2)}`;
 }
-
-const STORAGE_KEY = "smart-todo.tasks.v1";
 
 function loadTasks(): Task[] {
     try {
@@ -46,15 +46,7 @@ function loadTasks(): Task[] {
         const parsed = JSON.parse(raw) as Task[];
         if (!Array.isArray(parsed)) return DEMO_TASKS;
 
-        // Minimum alan kontrolü (çok basit)
-        const looksValid = parsed.every(
-            (t) =>
-                typeof t.id === "string" &&
-                typeof t.title === "string" &&
-                typeof t.completed === "boolean"
-        );
-
-        return looksValid ? parsed : DEMO_TASKS;
+        return parsed;
     } catch {
         return DEMO_TASKS;
     }
@@ -66,33 +58,44 @@ export default function App() {
     const [query, setQuery] = useState("");
     const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
 
-    // Form state
     const [title, setTitle] = useState("");
     const [priority, setPriority] = useState<Priority>("Medium");
-    const [dueDate, setDueDate] = useState<string>(""); // input için string, kaydederken null'a çevireceğiz
+    const [dueDate, setDueDate] = useState("");
 
     const remainingCount = useMemo(
-        () => tasks.filter((t) => !t.completed).length,
+        () => tasks.filter((task) => !task.completed).length,
+        [tasks]
+    );
+
+    const completedCount = useMemo(
+        () => tasks.filter((task) => task.completed).length,
         [tasks]
     );
 
     const sortedVisibleTasks = useMemo(() => {
-        const q = query.trim().toLowerCase();
+        const searchText = query.trim().toLowerCase();
 
-        const filtered = tasks.filter((t) => {
+        const filtered = tasks.filter((task) => {
             const matchesFilter =
-                filter === "all" ? true : filter === "active" ? !t.completed : t.completed;
+                filter === "all"
+                    ? true
+                    : filter === "active"
+                        ? !task.completed
+                        : task.completed;
 
-            const matchesQuery = q ? t.title.toLowerCase().includes(q) : true;
+            const matchesSearch = searchText
+                ? task.title.toLowerCase().includes(searchText)
+                : true;
 
-            return matchesFilter && matchesQuery;
+            return matchesFilter && matchesSearch;
         });
 
-        const sorted = [...filtered].sort((a, b) => {
+        return [...filtered].sort((a, b) => {
             if (sortBy === "dueDate") {
                 const aTime = a.dueDate
                     ? new Date(a.dueDate).getTime()
                     : Number.POSITIVE_INFINITY;
+
                 const bTime = b.dueDate
                     ? new Date(b.dueDate).getTime()
                     : Number.POSITIVE_INFINITY;
@@ -100,61 +103,32 @@ export default function App() {
                 return aTime - bTime;
             }
 
-            const rank: Record<string, number> = {
+            const priorityRank: Record<Priority, number> = {
                 High: 3,
                 Medium: 2,
                 Low: 1,
             };
 
-            return rank[b.priority] - rank[a.priority];
+            return priorityRank[b.priority] - priorityRank[a.priority];
         });
-
-        return sorted;
     }, [tasks, filter, query, sortBy]);
 
-    // ✅ LocalStorage'a kaydet (tasks değiştikçe)
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }, [tasks]);
 
-    function toggleTask(id: string) {
-        setTasks((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-        );
-    }
+    function addTask(event: FormEvent) {
+        event.preventDefault();
 
-    function deleteTask(id: string) {
-        setTasks((prev) => prev.filter((t) => t.id !== id));
-    }
-
-    function updateTaskTitle(id: string, newTitle: string) {
-        setTasks((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, title: newTitle } : t))
-        );
-    }
-    function clearCompleted() {
-        setTasks((prev) => prev.filter((t) => !t.completed));
-    }
-
-    function resetDemo() {
-        // storage'ı temizle ve demoya dön
-        localStorage.removeItem(STORAGE_KEY);
-        setTasks(DEMO_TASKS);
-        setFilter("all");
-        setQuery("");
-        setSortBy("dueDate");
-    }
-    function addTask(e: React.FormEvent) {
-        e.preventDefault();
-        const trimmed = title.trim();
-        if (!trimmed) return;
+        const trimmedTitle = title.trim();
+        if (!trimmedTitle) return;
 
         const newTask: Task = {
             id: uid(),
-            title: trimmed,
+            title: trimmedTitle,
             completed: false,
             priority,
-            dueDate: dueDate ? dueDate : null,
+            dueDate: dueDate || null,
             createdAt: Date.now(),
         };
 
@@ -164,178 +138,204 @@ export default function App() {
         setDueDate("");
     }
 
+    function toggleTask(id: string) {
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.id === id ? { ...task, completed: !task.completed } : task
+            )
+        );
+    }
+
+    function deleteTask(id: string) {
+        setTasks((prev) => prev.filter((task) => task.id !== id));
+    }
+
+    function updateTaskTitle(id: string, newTitle: string) {
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.id === id ? { ...task, title: newTitle } : task
+            )
+        );
+    }
+
+    function clearCompleted() {
+        setTasks((prev) => prev.filter((task) => !task.completed));
+    }
+
+    function resetDemo() {
+        localStorage.removeItem(STORAGE_KEY);
+        setTasks(DEMO_TASKS);
+        setFilter("all");
+        setQuery("");
+        setSortBy("dueDate");
+    }
+
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900">
-            <div className="mx-auto max-w-2xl p-4 sm:p-6">
-                {/* Header */}
-                <header className="flex items-center justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                            Smart To-Do
-                        </h1>
-                        <p className="mt-1 text-sm text-gray-600">
-                            Kalan görev: <span className="font-semibold">{remainingCount}</span>
-                        </p>
-                    </div>
-                    <span className="rounded-full border bg-white px-3 py-1 text-xs text-gray-600 shadow-sm">
-                        React + TS + Tailwind
-                    </span>
-                </header>
-
-                {/* Add form */}
-                <section className="mt-6 rounded-2xl border bg-white p-4 shadow-sm sm:p-5">
-                    <h2 className="text-sm font-semibold text-gray-800">Yeni görev ekle</h2>
-
-                    <form onSubmit={addTask} className="mt-3 space-y-3">
+        <main className="min-h-screen px-4 py-8 text-slate-800 sm:px-6">
+            <div className="mx-auto max-w-3xl">
+                <header className="mb-8 rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-2xl shadow-indigo-100/70 backdrop-blur-xl sm:p-8">
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <label className="text-xs font-medium text-gray-700">
-                                Görev başlığı
-                            </label>
-                            <input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Buraya gorev yeni bir gorev yaz"
-                                className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
-                            />
+                            <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-indigo-400">
+                                Smart Planner
+                            </p>
+
+                            <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+                                Smart To-Do
+                            </h1>
+
+                            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+                                Manage your tasks.
+                            </p>
                         </div>
 
+                        <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-sky-400 px-6 py-5 text-white shadow-xl shadow-indigo-200">
+                            <p className="text-xs font-medium opacity-80">Remaining tasks</p>
+                            <p className="text-4xl font-black">{remainingCount}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl bg-slate-50/90 p-4">
+                            <p className="text-xs text-slate-500">Total</p>
+                            <p className="mt-1 text-2xl font-bold text-slate-800">{tasks.length}</p>
+                        </div>
+
+                        <div className="rounded-2xl bg-emerald-50/90 p-4">
+                            <p className="text-xs text-emerald-600">Completed</p>
+                            <p className="mt-1 text-2xl font-bold text-emerald-700">
+                                {completedCount}
+                            </p>
+                        </div>
+                    </div>
+                </header>
+
+                <section className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-200/70 backdrop-blur-xl sm:p-6">
+                    <h2 className="text-lg font-bold text-slate-900">Add new task</h2>
+
+                    <form onSubmit={addTask} className="mt-4 space-y-4">
+                        <input
+                            value={title}
+                            onChange={(event) => setTitle(event.target.value)}
+                            placeholder="What do you want to do today?"
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                        />
+
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <div>
-                                <label className="text-xs font-medium text-gray-700">Öncelik</label>
-                                <select
-                                    value={priority}
-                                    onChange={(e) => setPriority(e.target.value as Priority)}
-                                    className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
-                                >
-                                    <option value="Low">Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
+                            <select
+                                value={priority}
+                                onChange={(event) => setPriority(event.target.value as Priority)}
+                                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                            >
+                                <option value="Low">Low priority</option>
+                                <option value="Medium">Medium priority</option>
+                                <option value="High">High priority</option>
+                            </select>
 
-                            <div>
-                                <label className="text-xs font-medium text-gray-700">Son tarih</label>
-                                <input
-                                    type="date"
-                                    value={dueDate}
-                                    onChange={(e) => setDueDate(e.target.value)}
-                                    className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
-                                />
-                            </div>
+                            <input
+                                type="date"
+                                value={dueDate}
+                                onChange={(event) => setDueDate(event.target.value)}
+                                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                            />
 
-                            <div className="flex items-end">
-                                <button
-                                    type="submit"
-                                    disabled={!title.trim()}
-                                    className="w-full rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Ekle
-                                </button>
-                            </div>
+                            <button
+                                type="submit"
+                                disabled={!title.trim()}
+                                className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-400 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+                            >
+                                Add
+                            </button>
                         </div>
                     </form>
                 </section>
-                {/* Filter Bar (centered between sections) */}
+
                 <div className="mt-5 flex justify-center">
-                    <div className="inline-flex overflow-hidden rounded-2xl border bg-white shadow-sm">
-                        <button
-                            type="button"
-                            onClick={() => setFilter("all")}
-                            className={`px-5 py-2 text-sm font-semibold ${filter === "all"
-                                    ? "bg-gray-900 text-white"
-                                    : "text-gray-700 hover:bg-gray-50"
-                                }`}
-                        >
-                            Hepsi
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setFilter("active")}
-                            className={`px-5 py-2 text-sm font-semibold ${filter === "active"
-                                    ? "bg-gray-900 text-white"
-                                    : "text-gray-700 hover:bg-gray-50"
-                                }`}
-                        >
-                            Aktif
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setFilter("completed")}
-                            className={`px-5 py-2 text-sm font-semibold ${filter === "completed"
-                                    ? "bg-gray-900 text-white"
-                                    : "text-gray-700 hover:bg-gray-50"
-                                }`}
-                        >
-                            Tamamlanan
-                        </button>
+                    <div className="inline-flex rounded-2xl border border-white/80 bg-white/80 p-1 shadow-lg shadow-slate-200/70 backdrop-blur">
+                        {(["all", "active", "completed"] as Filter[]).map((item) => (
+                            <button
+                                key={item}
+                                type="button"
+                                onClick={() => setFilter(item)}
+                                className={`rounded-xl px-5 py-2 text-sm font-bold transition ${filter === item
+                                        ? "bg-indigo-500 text-white shadow-md shadow-indigo-200"
+                                        : "text-slate-500 hover:bg-slate-100"
+                                    }`}
+                            >
+                                {item === "all"
+                                    ? "All"
+                                    : item === "active"
+                                        ? "Active"
+                                        : "Completed"}
+                            </button>
+                        ))}
                     </div>
                 </div>
-                {/* List / Empty state */}
-                <section className="mt-6">
-                    <div className="mt-2 rounded-2xl border bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            {/* Left: title + actions */}
-                            <div className="flex flex-col gap-2">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="text-sm font-semibold text-gray-800">Görevler</h2>
 
-                                    <button
-                                        type="button"
-                                        onClick={clearCompleted}
-                                        disabled={!tasks.some((t) => t.completed)}
-                                        className="rounded-full border bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                    >
-                                        Clear completed
-                                    </button>
+                <section className="mt-6 rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-200/70 backdrop-blur-xl sm:p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-900">Tasks</h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Showing: {sortedVisibleTasks.length} • Total: {tasks.length}
+                            </p>
+                        </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={resetDemo}
-                                        className="rounded-full border bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                                    >
-                                        Reset demo
-                                    </button>
-                                </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <button
+                                type="button"
+                                onClick={clearCompleted}
+                                disabled={!tasks.some((task) => task.completed)}
+                                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Clear completed
+                            </button>
 
-                                <p className="text-xs text-gray-500">
-                                    Görünen: {sortedVisibleTasks.length} • Toplam: {tasks.length}
-                                </p>
-                            </div>
-
-                            {/* Right: controls */}
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                <input
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="Ara"
-                                    className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-64"
-                                />
-
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value as "dueDate" | "priority")}
-                                    className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 sm:w-56"
-                                >
-                                    <option value="dueDate">Sırala: Son tarihe göre</option>
-                                    <option value="priority">Sırala: Önceliğe göre</option>
-                                </select>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={resetDemo}
+                                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                            >
+                                Reset demo
+                            </button>
                         </div>
                     </div>
 
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Search tasks..."
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                        />
+
+                        <select
+                            value={sortBy}
+                            onChange={(event) =>
+                                setSortBy(event.target.value as "dueDate" | "priority")
+                            }
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                        >
+                            <option value="dueDate">Sort by: Due date</option>
+                            <option value="priority">Sort by: Priority</option>
+                        </select>
+                    </div>
 
                     {sortedVisibleTasks.length === 0 ? (
-                        <div className="mt-3 rounded-2xl border bg-white p-6 text-center text-sm text-gray-600 shadow-sm">
-                            Henüz görev yok. Yukarıdan bir görev ekleyerek başlayabilirsin ✨
+                        <div className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 p-8 text-center">
+                            <p className="text-sm font-semibold text-slate-600">
+                                No tasks yet  ✨ 
+                            </p>
+                            <p className="mt-1 text-sm text-slate-400">
+                                Start by adding a new task above.
+                            </p>
                         </div>
                     ) : (
-                        <ul className="mt-3 space-y-2">
-                            {sortedVisibleTasks.map((t) => (
+                        <ul className="mt-5 space-y-3">
+                            {sortedVisibleTasks.map((task) => (
                                 <TaskItem
-                                    key={t.id}
-                                    task={t}
+                                    key={task.id}
+                                    task={task}
                                     onToggle={toggleTask}
                                     onDelete={deleteTask}
                                     onUpdateTitle={updateTaskTitle}
@@ -345,6 +345,6 @@ export default function App() {
                     )}
                 </section>
             </div>
-        </div>
+        </main>
     );
 }

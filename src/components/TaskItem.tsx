@@ -8,7 +8,12 @@ type Props = {
     onUpdateTitle: (id: string, newTitle: string) => void;
 };
 
-export default function TaskItem({ task, onToggle, onDelete, onUpdateTitle }: Props) {
+export default function TaskItem({
+    task,
+    onToggle,
+    onDelete,
+    onUpdateTitle,
+}: Props) {
     const [isEditing, setIsEditing] = useState(false);
     const [draftTitle, setDraftTitle] = useState(task.title);
 
@@ -25,51 +30,82 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdateTitle }: Pr
     function saveEdit() {
         const trimmed = draftTitle.trim();
         if (!trimmed) return;
+
         onUpdateTitle(task.id, trimmed);
         setIsEditing(false);
     }
 
+    const priorityStyle =
+        task.priority === "High"
+            ? "border-rose-100 bg-rose-50 text-rose-600"
+            : task.priority === "Medium"
+                ? "border-amber-100 bg-amber-50 text-amber-600"
+                : "border-emerald-100 bg-emerald-50 text-emerald-600";
+
     return (
-        <li className="rounded-2xl border bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
+        <li
+            className={`rounded-3xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${task.completed
+                    ? "border-emerald-100 bg-emerald-50/70"
+                    : "border-slate-100 bg-white"
+                }`}
+        >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1">
                     {isEditing ? (
                         <div>
                             <input
                                 value={draftTitle}
-                                onChange={(e) => setDraftTitle(e.target.value)}
-                                className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200"
+                                onChange={(event) => setDraftTitle(event.target.value)}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
                                 autoFocus
                             />
-                            <div className="mt-2 flex gap-2">
+
+                            <div className="mt-3 flex gap-2">
                                 <button
                                     type="button"
                                     onClick={saveEdit}
                                     disabled={!draftTitle.trim()}
-                                    className="rounded-xl bg-gray-900 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-2xl bg-indigo-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
-                                    Kaydet
+                                    Save
                                 </button>
+
                                 <button
                                     type="button"
                                     onClick={cancelEdit}
-                                    className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-gray-800"
+                                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
                                 >
-                                    İptal
+                                    Cancel
                                 </button>
                             </div>
                         </div>
                     ) : (
                         <div>
-                            <p className={`text-sm font-semibold ${task.completed ? "line-through text-gray-400" : ""}`}>
+                            <p
+                                className={`text-base font-bold ${task.completed
+                                        ? "text-slate-400 line-through"
+                                        : "text-slate-800"
+                                    }`}
+                            >
                                 {task.title}
                             </p>
 
-                            <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-                                <span className="rounded-full border px-2 py-0.5">Priority: {task.priority}</span>
-                                <span className="rounded-full border px-2 py-0.5">Due: {task.dueDate ?? "—"}</span>
-                                <span className="rounded-full border px-2 py-0.5">
-                                    Status: {task.completed ? "Done" : "Active"}
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                                <span className={`rounded-full border px-3 py-1 ${priorityStyle}`}>
+                                    {task.priority}
+                                </span>
+
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-500">
+                                    Due: {task.dueDate ?? "—"}
+                                </span>
+
+                                <span
+                                    className={`rounded-full border px-3 py-1 ${task.completed
+                                            ? "border-emerald-100 bg-emerald-100 text-emerald-700"
+                                            : "border-sky-100 bg-sky-50 text-sky-600"
+                                        }`}
+                                >
+                                    {task.completed ? "Done" : "Active"}
                                 </span>
                             </div>
                         </div>
@@ -77,29 +113,32 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdateTitle }: Pr
                 </div>
 
                 {!isEditing && (
-                    <div className="flex shrink-0 flex-row gap-2 sm:flex-col">
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
                         <button
                             type="button"
                             onClick={() => onToggle(task.id)}
-                            className="rounded-xl bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+                            className={`rounded-2xl px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5 ${task.completed
+                                    ? "bg-sky-500 hover:bg-sky-600"
+                                    : "bg-emerald-500 hover:bg-emerald-600"
+                                }`}
                         >
-                            {task.completed ? "Aktif yap" : "Tamamla"}
+                            {task.completed ? "Mark active" : "Complete"}
                         </button>
 
                         <button
                             type="button"
                             onClick={startEdit}
-                            className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
                         >
-                            Düzenle
+                            Edit
                         </button>
 
                         <button
                             type="button"
                             onClick={() => onDelete(task.id)}
-                            className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
                         >
-                            Sil
+                            Delete
                         </button>
                     </div>
                 )}
